@@ -1,0 +1,40 @@
+# CoastalContrast Dependencies
+# Install with: pip install -r coastal_contrast/requirements.txt
+
+# Core dependencies
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+
+# Point cloud I/O
+laspy>=2.4.0
+# laspy[lazrs]  # Uncomment for LAZ support
+
+# Point cloud processing (for later phases)
+open3d>=0.17.0
+
+# PyTorch (install separately based on CUDA version)
+# See: https://pytorch.org/get-started/locally/
+# torch>=2.0.0
+# torch-scatter>=2.1.0
+
+# PTv3 specific (install separately)
+# spconv-cu118>=2.3.0  # Adjust for your CUDA version
+# flash-attn>=2.0.0    # Optional, requires CUDA 11.6+
+
+# Utilities
+addict>=2.4.0
+tqdm>=4.65.0
+pyyaml>=6.0
+
+# Data storage
+h5py>=3.8.0
+pyarrow>=12.0.0
+
+# Training (for later phases)
+tensorboard>=2.12.0
+# wandb>=0.15.0  # Optional
+
+# Testing
+pytest>=7.3.0
+pytest-cov>=4.0.0
