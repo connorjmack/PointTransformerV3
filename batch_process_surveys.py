@@ -95,8 +95,14 @@ def batch_process(csv_path, output_base, tile_size=10.0, grid_size=0.02,
 
         for i, survey_path in enumerate(surveys, 1):
             # Create unique output directory for this survey
-            # Use the survey date and MOP range from the filename
-            survey_name = Path(survey_path).stem  # Removes .las extension
+            # Extract just date and MOP range (e.g., 20170301_00590_00612)
+            full_name = Path(survey_path).stem  # Removes .las extension
+            # Split by underscore and take first 3 parts (date_MOP1_MOP2)
+            parts = full_name.split('_')
+            if len(parts) >= 3:
+                survey_name = '_'.join(parts[:3])  # e.g., 20170301_00590_00612
+            else:
+                survey_name = full_name  # Fallback to full name if pattern doesn't match
             output_dir = output_base / survey_name
 
             # Check if already processed (resume mode)
