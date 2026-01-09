@@ -72,7 +72,7 @@ def process_las_to_tiles(las_path, output_dir, tile_size=10.0, grid_size=0.02, w
                    Useful for very dense point clouds. Applied before tiling.
     """
     if workers is None:
-        workers = max(1, cpu_count() // 3)  # Use 1/3 of available cores
+        workers = max(1, cpu_count() // 2)  # Use 1/2 of available cores
 
     print(f"Reading {las_path}...")
     las = laspy.read(las_path)
@@ -122,7 +122,7 @@ def process_las_to_tiles(las_path, output_dir, tile_size=10.0, grid_size=0.02, w
             tile_list.append((tile_idx, x, y, tile_size))
             tile_idx += 1
 
-    print(f"Processing {len(tile_list)} potential tiles with {workers} workers (using 1/3 of {cpu_count()} cores)...")
+    print(f"Processing {len(tile_list)} potential tiles with {workers} workers (using 1/2 of {cpu_count()} cores)...")
     print(f"Tile size: {tile_size}m x {tile_size}m, Voxel size: {grid_size}m")
     print(f"Point cloud loaded into shared memory: {coords.shape[0]:,} points")
 
