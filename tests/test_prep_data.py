@@ -3,7 +3,7 @@ import numpy as np
 import laspy
 import torch
 import pytest
-from prep_data import process_las_to_tiles, voxelize
+from prep_data import process_las_to_tiles, voxelize_fast
 
 def create_dummy_las(path, num_points=1000):
     """Creates a dummy .las file for testing."""
@@ -28,9 +28,9 @@ def test_voxelize():
     feat = np.array([[1], [2], [3]], dtype=np.float32)
     labels = np.array([0, 0, 1], dtype=np.int64)
     grid_size = 0.1
-    
-    v_coords, v_feat, v_labels = voxelize(coords, feat, labels, grid_size)
-    
+
+    v_coords, v_feat, v_labels = voxelize_fast(coords, feat, labels, grid_size)
+
     # Points [0,0,0] and [0.01, 0.01, 0.01] should fall into the same 0.1m voxel
     assert len(v_coords) == 2
     assert len(v_feat) == 2
@@ -39,12 +39,12 @@ def test_voxelize():
 def test_full_pipeline(tmp_path):
     las_path = os.path.join(tmp_path, "test.las")
     output_dir = os.path.join(tmp_path, "tiles")
-    
+
     create_dummy_las(las_path, num_points=2000)
-    
+
     # Run the processor
     # We use a 5m tile size on a 10m x 10m area, so we expect ~4 tiles
-    process_las_to_tiles(las_path, output_dir, tile_size=5.0, grid_size=0.1)
+    process_las_to_tiles(las_path, output_dir, tile_size=5.0, grid_size=0.1, workers=2)
     
     tiles = os.listdir(output_dir)
     assert len(tiles) > 0

@@ -8,14 +8,25 @@ from multiprocessing.pool import ThreadPool
 from multiprocessing import cpu_count
 from functools import partial
 
-def voxelize(coord, feat, label, grid_size):
+def voxelize_fast(coord, feat, label, grid_size):
     """
-    Grid sampling (voxelization) of point cloud.
+    Fast grid sampling (voxelization) using hash-based method.
     Returns the first point in each voxel.
+    Much faster than np.unique for large point clouds.
     """
     idx_grid = np.floor(coord / grid_size).astype(np.int64)
-    # Create a unique hash for each voxel
-    unique_voxels, indices = np.unique(idx_grid, axis=0, return_index=True)
+
+    # Hash the 3D grid indices to 1D
+    # This is much faster than np.unique on 3D arrays
+    offset = idx_grid.min(axis=0)
+    idx_grid -= offset
+
+    # Create unique hash for each voxel (handles up to 10000 voxels per dimension)
+    hash_vals = idx_grid[:, 0] + idx_grid[:, 1] * 10000 + idx_grid[:, 2] * 100000000
+
+    # Find first occurrence of each hash (much faster than np.unique)
+    _, indices = np.unique(hash_vals, return_index=True)
+
     return coord[indices], feat[indices], label[indices]
 
 def process_single_tile(tile_info, coords, feat, labels, grid_size, output_dir, min_points=100):
@@ -36,8 +47,8 @@ def process_single_tile(tile_info, coords, feat, labels, grid_size, output_dir, 
     tile_feat = feat[mask]
     tile_labels = labels[mask]
 
-    # Voxelize
-    v_coords, v_feat, v_labels = voxelize(tile_coords, tile_feat, tile_labels, grid_size)
+    # Voxelize using fast hash-based method
+    v_coords, v_feat, v_labels = voxelize_fast(tile_coords, tile_feat, tile_labels, grid_size)
 
     # Prepare data_dict compatible with PTv3 Point class
     data_dict = {
@@ -51,10 +62,14 @@ def process_single_tile(tile_info, coords, feat, labels, grid_size, output_dir, 
     torch.save(data_dict, os.path.join(output_dir, tile_name))
     return tile_name
 
-def process_las_to_tiles(las_path, output_dir, tile_size=10.0, grid_size=0.02, workers=None):
+def process_las_to_tiles(las_path, output_dir, tile_size=10.0, grid_size=0.02, workers=None, subsample=None):
     """
     Slices a large .las file into vertical columns and voxelizes each.
     Uses threading for parallel tile processing (shares memory efficiently).
+
+    Args:
+        subsample: Optional random subsampling ratio (e.g., 0.5 = keep 50% of points).
+                   Useful for very dense point clouds. Applied before tiling.
     """
     if workers is None:
         workers = max(1, cpu_count() // 3)  # Use 1/3 of available cores
@@ -62,25 +77,33 @@ def process_las_to_tiles(las_path, output_dir, tile_size=10.0, grid_size=0.02, w
     print(f"Reading {las_path}...")
     las = laspy.read(las_path)
 
-    # Extract coordinates
-    coords = np.vstack((las.x, las.y, las.z)).T
+    n_points = len(las.x)
+    print(f"Loaded {n_points:,} points")
+
+    # Extract coordinates (optimized: direct array creation)
+    coords = np.column_stack((las.x, las.y, las.z)).astype(np.float32)
 
     # Extract features (Intensity and potentially colors if available)
-    # For now, let's use Intensity as a primary feature.
-    # We normalize intensity to [0, 1] if possible.
     if hasattr(las, 'intensity'):
-        feat = np.array(las.intensity).astype(np.float32).reshape(-1, 1)
+        feat = np.array(las.intensity, dtype=np.float32).reshape(-1, 1)
         feat = (feat - feat.min()) / (feat.max() - feat.min() + 1e-6)
     else:
-        # Fallback to a dummy feature if intensity is missing
-        feat = np.ones((coords.shape[0], 1), dtype=np.float32)
+        feat = np.ones((n_points, 1), dtype=np.float32)
 
     # Extract classification (ground truth labels)
-    # RF pipeline should have populated 'classification'
     if hasattr(las, 'classification'):
-        labels = np.array(las.classification).astype(np.int64)
+        labels = np.array(las.classification, dtype=np.int64)
     else:
-        labels = np.zeros(coords.shape[0], dtype=np.int64)
+        labels = np.zeros(n_points, dtype=np.int64)
+
+    # Optional random subsampling for very dense point clouds
+    if subsample is not None and 0 < subsample < 1:
+        n_subsample = int(n_points * subsample)
+        print(f"Subsampling {subsample*100:.1f}%: {n_points:,} → {n_subsample:,} points")
+        idx = np.random.choice(n_points, n_subsample, replace=False)
+        coords = coords[idx]
+        feat = feat[idx]
+        labels = labels[idx]
 
     # Determine tiling bounds
     min_x, min_y = coords[:, 0].min(), coords[:, 1].min()
@@ -133,6 +156,7 @@ if __name__ == "__main__":
     parser.add_argument("--tile_size", type=float, default=10.0, help="Size of vertical tiles in meters (default: 10.0)")
     parser.add_argument("--grid_size", type=float, default=0.02, help="Voxel size for downsampling (default: 0.02)")
     parser.add_argument("--workers", type=int, default=None, help="Number of parallel workers (default: auto-detect)")
+    parser.add_argument("--subsample", type=float, default=None, help="Random subsample ratio before tiling (e.g., 0.3 = keep 30%%). Good for very dense clouds.")
 
     args = parser.parse_args()
-    process_las_to_tiles(args.input, args.output, args.tile_size, args.grid_size, args.workers)
+    process_las_to_tiles(args.input, args.output, args.tile_size, args.grid_size, args.workers, args.subsample)
