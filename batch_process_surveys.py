@@ -24,7 +24,7 @@ from datetime import datetime
 from prep_data import process_las_to_tiles
 
 def batch_process(csv_path, output_base, tile_size=10.0, grid_size=0.02,
-                  workers=None, subsample=None, resume=True):
+                  workers=None, subsample=None, resume=True, path_replace=None):
     """
     Process all surveys listed in CSV file.
 
@@ -36,6 +36,8 @@ def batch_process(csv_path, output_base, tile_size=10.0, grid_size=0.02,
         workers: Number of worker threads (None = auto)
         subsample: Random subsample ratio (None = no subsampling)
         resume: Skip already processed surveys
+        path_replace: Tuple of (old_prefix, new_prefix) to replace in paths
+                      e.g., ('/Volumes', '/project') to fix mount point differences
     """
 
     # Read survey list
@@ -48,6 +50,13 @@ def batch_process(csv_path, output_base, tile_size=10.0, grid_size=0.02,
         sys.exit(1)
 
     surveys = df['full_path'].tolist()
+
+    # Apply path replacement if specified
+    if path_replace is not None:
+        old_prefix, new_prefix = path_replace
+        surveys = [s.replace(old_prefix, new_prefix) for s in surveys]
+        print(f"Replacing '{old_prefix}' with '{new_prefix}' in all paths")
+
     print(f"Found {len(surveys)} surveys to process\n")
 
     # Create output directory
@@ -193,8 +202,16 @@ if __name__ == "__main__":
                        help="Random subsample ratio (e.g., 0.3 = keep 30%%). Good for dense clouds.")
     parser.add_argument("--no-resume", action="store_true",
                        help="Reprocess all surveys (don't skip already processed)")
+    parser.add_argument("--path-prefix", type=str, nargs=2, default=None,
+                       metavar=('OLD', 'NEW'),
+                       help="Replace path prefix (e.g., --path-prefix /Volumes /project)")
 
     args = parser.parse_args()
+
+    # Parse path replacement
+    path_replace = None
+    if args.path_prefix:
+        path_replace = tuple(args.path_prefix)
 
     batch_process(
         csv_path=args.csv,
@@ -203,5 +220,6 @@ if __name__ == "__main__":
         grid_size=args.grid_size,
         workers=args.workers,
         subsample=args.subsample,
-        resume=not args.no_resume
+        resume=not args.no_resume,
+        path_replace=path_replace
     )
