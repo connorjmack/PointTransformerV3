@@ -29,16 +29,16 @@ def process_las_to_tiles(las_path, output_dir, tile_size=5.0, grid_size=0.02):
     # For now, let's use Intensity as a primary feature.
     # We normalize intensity to [0, 1] if possible.
     if hasattr(las, 'intensity'):
-        feat = las.intensity.astype(np.float32).reshape(-1, 1)
+        feat = np.array(las.intensity).astype(np.float32).reshape(-1, 1)
         feat = (feat - feat.min()) / (feat.max() - feat.min() + 1e-6)
     else:
         # Fallback to a dummy feature if intensity is missing
         feat = np.ones((coords.shape[0], 1), dtype=np.float32)
-        
+
     # Extract classification (ground truth labels)
     # RF pipeline should have populated 'classification'
     if hasattr(las, 'classification'):
-        labels = las.classification.astype(np.int64)
+        labels = np.array(las.classification).astype(np.int64)
     else:
         labels = np.zeros(coords.shape[0], dtype=np.int64)
 
