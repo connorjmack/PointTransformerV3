@@ -1,0 +1,41 @@
+name: ptv3
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - pyg
+  - anaconda
+dependencies:
+  - python=3.8
+  - ninja
+  - pytorch=2.1.0
+  - torchvision=0.16.0
+  - torchaudio=2.1.0
+  - pytorch-cuda=11.8
+  - h5py
+  - pyyaml
+  - sharedarray
+  - tensorboard
+  - tensorboardx
+  - yapf
+  - addict
+  - einops
+  - scipy
+  - plyfile
+  - termcolor
+  - timm
+  - pytorch-cluster
+  - pytorch-scatter
+  - pytorch-sparse
+  - pip
+  - pip:
+    - torch-geometric
+    - spconv-cu118
+    - open3d
+    - laspy>=2.4.0
+    - pandas>=2.0.0
+    - pyarrow>=12.0.0
+    - tqdm>=4.65.0
+    - pytest>=7.3.0
+    - pytest-cov>=4.0.0
+    - flash-attn

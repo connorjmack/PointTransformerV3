@@ -1,0 +1,50 @@
+# Core dependencies
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+
+# Point cloud processing
+laspy>=2.4.0
+open3d>=0.17.0
+plyfile
+
+# PyTorch and extensions (adjust cuda version as needed)
+torch==2.1.0
+torchvision==0.16.0
+torchaudio==2.1.0
+torch-geometric
+torch-cluster
+torch-scatter
+torch-sparse
+
+# Sparse convolution
+spconv-cu118  # Change to spconv-cu116 or spconv-cu121 based on your CUDA version
+
+# Model utilities
+addict>=2.4.0
+einops
+timm
+
+# Training and logging
+tensorboard>=2.12.0
+tensorboardx
+h5py>=3.8.0
+pyyaml>=6.0
+pyarrow>=12.0.0
+
+# Utilities
+tqdm>=4.65.0
+termcolor
+yapf
+ninja
+
+# Optional but recommended (remove if CUDA 11.6+ not available)
+flash-attn
+
+# Testing
+pytest>=7.3.0
+pytest-cov>=4.0.0
+
+# Build tools
+setuptools
+wheel
